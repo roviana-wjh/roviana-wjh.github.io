@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oblivion</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?deps=react@18.2.0",
+        "framer-motion": "https://esm.sh/framer-motion@11.0.8?deps=react@18.2.0"
+      }
+    }
+  </script>
+  <style>
+    :root{
+      --bg:#07080b;
+      --panel:rgba(255,255,255,.06);
+      --panel-2:rgba(255,255,255,.09);
+      --line:rgba(255,255,255,.12);
+      --text:#f5f7fb;
+      --muted:#9ca6b6;
+      --soft:#cbd2de;
+      --shadow:0 30px 90px rgba(0,0,0,.38);
+      --radius:28px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      overflow-x:hidden;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 50% -8%, rgba(132,152,208,.18), transparent 34%),
+        radial-gradient(circle at 18% 25%, rgba(255,255,255,.08), transparent 26%),
+        linear-gradient(180deg,#090a0e,#06070a 50%,#050608);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+      background-size:72px 72px;
+      mask-image:radial-gradient(circle at 50% 22%, black, transparent 72%);
+      z-index:0;
+    }
+    a{color:inherit;text-decoration:none}
+    svg{width:22px;height:22px;stroke-width:1.8}
+    .app{position:relative;isolation:isolate;min-height:100vh}
+    .cursor-glow{
+      position:fixed;left:0;top:0;width:360px;height:360px;border-radius:999px;
+      pointer-events:none;background:radial-gradient(circle, rgba(201,212,255,.16), transparent 68%);
+      filter:blur(16px);transform:translate(-50%,-50%);z-index:1;
+    }
+    .intro{
+      position:fixed;inset:0;z-index:100;display:grid;place-items:center;overflow:hidden;
+      background:radial-gradient(circle at 50% 42%, rgba(206,216,255,.16), transparent 25%), #07080b;
+    }
+    .intro::before{
+      content:"";position:absolute;inset:0;background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size:64px 64px;
+      mask-image:radial-gradient(circle at center, black, transparent 72%);
+    }
+    .intro-beam{
+      position:absolute;left:50%;bottom:-24vh;width:18vw;min-width:180px;height:92vh;transform:translateX(-50%);
+      background:linear-gradient(to top, rgba(255,255,255,.22), rgba(255,255,255,.05), transparent);
+      filter:blur(18px);clip-path:polygon(44% 100%,56% 100%,100% 0,0 0);opacity:.42;
+    }
+    .intro-panel{position:relative;z-index:2;display:grid;justify-items:center;gap:24px;text-align:center;padding:28px}
+    .launch-core{
+      position:relative;width:clamp(150px,18vw,230px);aspect-ratio:1;display:grid;place-items:center;cursor:pointer;
+      border:1px solid rgba(255,255,255,.16);border-radius:999px;
+      background:radial-gradient(circle, rgba(255,255,255,.20), rgba(255,255,255,.06) 35%, rgba(255,255,255,.025) 66%, transparent 67%);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08), 0 30px 120px rgba(0,0,0,.52);
+      backdrop-filter:blur(22px);
+    }
+    .launch-core::before,.launch-core::after{
+      content:"";position:absolute;inset:18%;border:1px solid rgba(255,255,255,.22);border-radius:999px;
+    }
+    .launch-core::after{
+      inset:34%;background:rgba(255,255,255,.86);box-shadow:0 0 38px rgba(220,229,255,.34);
+    }
+    .orbit{
+      position:absolute;inset:-8px;border-radius:999px;border:1px solid transparent;
+      border-top-color:rgba(255,255,255,.72);border-right-color:rgba(255,255,255,.18);
+    }
+    .intro-title{
+      margin:0;font-size:clamp(34px,6vw,78px);line-height:.98;letter-spacing:-.06em;font-weight:780;
+    }
+    .intro-copy{margin:0;max-width:520px;color:var(--muted);line-height:1.75;font-size:15px}
+    .intro-hint{
+      display:inline-flex;align-items:center;gap:8px;color:var(--soft);font-size:13px;
+      padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.055);backdrop-filter:blur(18px);
+    }
+    .nav{
+      position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:20;width:min(1120px,calc(100% - 32px));
+      display:flex;align-items:center;justify-content:space-between;padding:12px 14px 12px 18px;
+      border:1px solid var(--line);background:rgba(12,14,19,.58);backdrop-filter:blur(24px);border-radius:999px;box-shadow:0 12px 48px rgba(0,0,0,.22);
+    }
+    .nav-links{display:flex;align-items:center;gap:8px}
+    .nav-links a{
+      font-size:13px;color:var(--muted);padding:9px 13px;border-radius:999px;transition:color .25s ease,background .25s ease;
+    }
+    .nav-links a:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .section{position:relative;z-index:2;width:min(1120px,calc(100% - 40px));margin:0 auto}
+    .hero{min-height:100vh;display:grid;place-items:center;padding:140px 0 86px}
+    .hero-stage{
+      position:relative;width:100%;min-height:680px;display:grid;place-items:center;border-radius:38px;overflow:hidden;
+    }
+    .hero-stage::before{
+      content:"";position:absolute;inset:0;background:
+        linear-gradient(to bottom, rgba(255,255,255,.08), transparent 18%, transparent 78%, rgba(255,255,255,.045)),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.08), transparent 46%);
+      opacity:.88;
+    }
+    .flow-line{
+      position:absolute;height:1px;background:linear-gradient(90deg, transparent, rgba(255,255,255,.46), transparent);
+      opacity:.38;filter:blur(.2px)
+    }
+    .flow-line.one{top:30%;left:4%;width:68%}
+    .flow-line.two{top:62%;right:-10%;width:82%;opacity:.24}
+    .particle{
+      position:absolute;width:3px;height:3px;border-radius:999px;background:rgba(238,243,255,.62);
+      box-shadow:0 0 18px rgba(210,222,255,.18);
+    }
+    .hero-content{position:relative;z-index:2;max-width:980px;margin:0 auto;text-align:center;padding:0 18px}
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;margin-bottom:24px;padding:8px 13px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.055);backdrop-filter:blur(18px);color:var(--soft);font-size:13px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#f4f7ff}
+    h1{
+      margin:0;font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.07em;font-weight:780;
+    }
+    .hero-title{display:flex;flex-direction:column;align-items:center}
+    .title-line{display:block;white-space:nowrap}
+    .title-char{
+      display:inline-block;color:rgba(255,255,255,.97);text-shadow:0 18px 70px rgba(255,255,255,.09);
+    }
+    .title-line.muted .title-char{color:rgba(255,255,255,.58)}
+    .title-shine{position:relative;overflow:hidden}
+    .title-shine::after{
+      content:"";position:absolute;top:0;bottom:0;width:18%;left:-22%;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent);
+      transform:skewX(-18deg);animation:titleSweep 5.8s ease-in-out infinite;
+    }
+    @keyframes titleSweep{
+      0%,45%{left:-22%;opacity:0}
+      55%{opacity:1}
+      78%,100%{left:104%;opacity:0}
+    }
+    .subtitle{max-width:700px;margin:28px auto 0;color:var(--muted);font-size:clamp(17px,2vw,22px);line-height:1.7}
+    .hero-actions{margin-top:42px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+    .btn{
+      height:48px;display:inline-flex;align-items:center;justify-content:center;padding:0 20px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.065);color:#fff;font-size:14px;font-weight:620;backdrop-filter:blur(18px);
+      transition:transform .25s ease, background .25s ease;
+    }
+    .btn.primary{background:#f4f6fb;color:#08090c;border-color:rgba(255,255,255,.64)}
+    .btn:hover{transform:translateY(-2px);background:rgba(255,255,255,.11)}
+    .btn.primary:hover{background:#fff}
+    .section-head{
+      display:flex;align-items:end;justify-content:space-between;gap:28px;margin-bottom:30px
+    }
+    .kicker{
+      color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.16em;margin-bottom:12px
+    }
+    h2{
+      margin:0;font-size:clamp(34px,5vw,62px);line-height:1;letter-spacing:-.055em;font-weight:760
+    }
+    .section-copy{max-width:430px;margin:0;color:var(--muted);line-height:1.7;font-size:15px}
+    .blog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .note-card{
+      position:relative;min-height:322px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.038));backdrop-filter:blur(22px);
+      box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;
+    }
+    .note-card::before{
+      content:"";position:absolute;inset:0;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.12), transparent 24%, transparent 76%, rgba(255,255,255,.06)),
+        radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.16), transparent 28%);
+      opacity:.62;pointer-events:none;transition:opacity .25s ease;
+    }
+    .note-card:hover::before{opacity:.92}
+    .note-top,.note-bottom{position:relative;z-index:1}
+    .card-meta{
+      display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-size:13px;margin-bottom:30px
+    }
+    .note-status{display:inline-flex;align-items:center;gap:8px;color:var(--soft)}
+    .note-status::before{
+      content:"";width:7px;height:7px;border-radius:999px;background:#edf2ff;box-shadow:0 0 18px rgba(237,242,255,.32)
+    }
+    .note-card h3{margin:0;font-size:23px;line-height:1.16;letter-spacing:-.025em}
+    .note-card p{margin:16px 0 0;color:var(--muted);line-height:1.7;font-size:15px}
+    .tag-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+    .tag{
+      padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--soft);font-size:12px;border:1px solid rgba(255,255,255,.075)
+    }
+    .open-note{
+      display:flex;align-items:center;justify-content:space-between;margin-top:28px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1);
+      color:#fff;font-size:13px;font-weight:640
+    }
+    .open-note span:last-child{
+      width:32px;height:32px;display:grid;place-items:center;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.1)
+    }
+    .stack-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .tech{
+      min-height:160px;padding:22px;border-radius:24px;border:1px solid var(--line);background:rgba(255,255,255,.052);
+      backdrop-filter:blur(20px);box-shadow:0 18px 60px rgba(0,0,0,.26)
+    }
+    .tech-icon{
+      width:44px;height:44px;display:grid;place-items:center;border-radius:16px;background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.1);margin-bottom:22px;color:#fff
+    }
+    .tech h3{margin:0;font-size:17px;letter-spacing:-.02em}
+    .tech p{margin:9px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+    .about{
+      display:grid;grid-template-columns:.92fr 1.08fr;gap:24px;align-items:stretch
+    }
+    .portrait{
+      min-height:560px;border-radius:32px;border:1px solid var(--line);
+      background:rgba(255,255,255,.045);
+      backdrop-filter:blur(24px);box-shadow:var(--shadow);overflow:hidden;position:relative
+    }
+    .portrait-frame{
+      position:absolute;inset:0;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.18), transparent 24%),
+        radial-gradient(circle at 50% 80%, rgba(180,198,255,.16), transparent 24%);
+      opacity:.8
+    }
+    .portrait-glow{
+      position:absolute;inset:14px;border-radius:28px;border:1px solid rgba(255,255,255,.08);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)
+    }
+    .portrait-img{
+      position:absolute;left:50%;top:50%;width:min(78%,440px);aspect-ratio:1;transform:translate(-50%,-50%);
+      border-radius:28px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 70px rgba(0,0,0,.4)
+    }
+    .portrait-img::after{
+      content:"";position:absolute;inset:0;
+      background:
+        linear-gradient(to top, rgba(0,0,0,.22), transparent 45%),
+        linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+      pointer-events:none;mix-blend-mode:screen;opacity:.55;animation:portraitSweep 6.5s ease-in-out infinite
+    }
+    @keyframes portraitSweep{
+      0%,100%{transform:translateX(-20%)}
+      50%{transform:translateX(20%)}
+    }
+    .portrait-img img{width:100%;height:100%;object-fit:cover;display:block}
+    .portrait-orbit{
+      position:absolute;inset:10%;border-radius:50%;border:1px solid rgba(255,255,255,.12);animation:spin 18s linear infinite
+    }
+    .portrait-orbit::before,.portrait-orbit::after{
+      content:"";position:absolute;width:10px;height:10px;border-radius:50%;background:#eef3ff;box-shadow:0 0 22px rgba(238,243,255,.38)
+    }
+    .portrait-orbit::before{left:4%;top:16%}
+    .portrait-orbit::after{right:6%;bottom:18%}
+    @keyframes spin{
+      to{transform:rotate(360deg)}
+    }
+    .about-panel{
+      padding:34px;border-radius:32px;border:1px solid var(--line);background:rgba(255,255,255,.052);backdrop-filter:blur(24px);box-shadow:var(--shadow)
+    }
+    .about-panel p{
+      color:var(--muted);font-size:16px;line-height:1.85;margin:20px 0 34px
+    }
+    .timeline{position:relative;display:grid;gap:22px;padding-left:24px}
+    .timeline::before{
+      content:"";position:absolute;left:5px;top:5px;bottom:5px;width:1px;background:rgba(255,255,255,.14)
+    }
+    .timeline-item{position:relative}
+    .timeline-item::before{
+      content:"";position:absolute;left:-24px;top:5px;width:11px;height:11px;border-radius:50%;background:#eef3ff;box-shadow:0 0 0 5px rgba(255,255,255,.06)
+    }
+    .timeline-time{color:var(--soft);font-size:13px;margin-bottom:7px}
+    .timeline-title{font-weight:680;letter-spacing:-.02em}
+    footer{margin-top:120px;padding:34px 0 48px;border-top:1px solid var(--line);color:var(--muted)}
+    .footer-inner{
+      width:min(1120px,calc(100% - 40px));margin:0 auto;display:flex;justify-content:space-between;gap:20px;align-items:center
+    }
+    .socials{display:flex;gap:10px;flex-wrap:wrap}
+    .socials a{
+      padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.045);
+      color:var(--soft);transition:color .25s ease, background .25s ease, transform .25s ease
+    }
+    .socials a:hover{color:#fff;background:rgba(255,255,255,.08);transform:translateY(-2px)}
+    .socials a:first-child{
+      padding:16px 22px;font-size:16px;font-weight:750;background:rgba(255,255,255,.1);color:#fff
+    }
+    .spacer{height:132px}
+    @media (max-width:920px){
+      .nav-links{display:none}
+      .hero-stage{min-height:620px}
+      .section-head{display:block}
+      .section-copy{margin-top:18px}
+      .blog-grid{grid-template-columns:1fr}
+      .stack-grid{grid-template-columns:repeat(2,1fr)}
+      .about{grid-template-columns:1fr}
+      .portrait{min-height:420px}
+    }
+    @media (max-width:560px){
+      .section{width:min(100% - 28px,1120px)}
+      .hero{padding-top:112px}
+      .hero-stage{min-height:560px;border-radius:28px}
+      h1{letter-spacing:-.055em}
+      .subtitle{font-size:16px}
+      .stack-grid{grid-template-columns:1fr}
+      .note-card,.about-panel{padding:22px;border-radius:24px}
+      .footer-inner{align-items:flex-start;flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="app">
+      <section class="intro">
+        <div class="intro-panel">
+          <div class="launch-core"><span class="orbit"></span></div>
+          <h1 class="intro-title">Oblivion</h1>
+          <p class="intro-copy">正在加载交互层。如果这里停留太久，请检查网络是否能访问 React 与 Framer Motion CDN。</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import React, { useEffect, useMemo, useState } from "react";
+    import { createRoot } from "react-dom/client";
+    import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
+
+    const h = React.createElement;
+    const M = motion.div;
+    const MA = motion.a;
+    const fadeUp = {
+      hidden: { opacity: 0, y: 34 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
+    };
+    const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12 } } };
+
+    const articles = [
+      {
+        title: "eino框架基础",
+        desc: "整理 Eino 的核心概念、组件关系和常见使用方式。",
+        tags: ["Agent", "Eino", "LLM"],
+        time: "2026.04",
+        href: "https://www.notion.so/eino-133e402e357482c98f4e0199b468ea54?t=35ce402e35748025990700a9f048fd8c"
+      },
+      {
+        title: "context包的作用",
+        desc: "说明 context 在取消、超时、链路传递中的实际用途。",
+        tags: ["Context", "Go", "Notes"],
+        time: "2026.03",
+        href: "https://www.notion.so/Context-321e402e357480fc8590e2b7240882fa?t=35ce402e35748025990700a9f048fd8c"
+      }
+    ];
+
+    const icon = (children) => h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor" }, children);
+    const path = (d, key) => h("path", { d, key });
+    const ellipse = (props) => h("ellipse", props);
+    const circle = (props) => h("circle", props);
+    const rect = (props) => h("rect", props);
+
+    const techs = [
+      {
+        name: "Golang",
+        desc: "主力后端语言，适合高并发与工程化实践。",
+        icon: icon([
+          circle({ key: "c", cx: "12", cy: "12", r: "2.5" }),
+          ellipse({ key: "e1", cx: "12", cy: "12", rx: "9", ry: "3.8" }),
+          ellipse({ key: "e2", cx: "12", cy: "12", rx: "9", ry: "3.8", transform: "rotate(60 12 12)" }),
+          ellipse({ key: "e3", cx: "12", cy: "12", rx: "9", ry: "3.8", transform: "rotate(120 12 12)" })
+        ])
+      },
+      {
+        name: "python",
+        desc: "用于理解企业级架构、网络和中间件思维。",
+        icon: icon(path("M7 4h10l-5 6h5l-10 10v-8h5z"))
+      },
+      {
+        name: "Eino",
+        desc: "用于 agent 开发与工具编排的实践框架。",
+        icon: icon([circle({ key: "a", cx: "12", cy: "12", r: "8" }), path("M9 16V8l6 8V8", "b")])
+      },
+      {
+        name: "Kafka",
+        desc: "消息流与异步解耦的基础设施。",
+        icon: icon([rect({ key: "a", x: "4", y: "4", width: "7", height: "7", rx: "2" }), rect({ key: "b", x: "13", y: "4", width: "7", height: "7", rx: "2" }), rect({ key: "c", x: "4", y: "13", width: "7", height: "7", rx: "2" }), rect({ key: "d", x: "13", y: "13", width: "7", height: "7", rx: "2" })])
+      },
+      {
+        name: "Distributed",
+        desc: "对分布式系统、边界条件和一致性问题持续学习。",
+        icon: icon([path("M12 3v18M5 8h14M5 16h14", "a"), path("M7 4c3 3 3 13 0 16M17 4c-3 3-3 13 0 16", "b")])
+      },
+      {
+        name: "LLM Workflow",
+        desc: "用于内容生成、方案探索与工程辅助。",
+        icon: icon([path("M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8z", "a"), path("M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z", "b")])
+      },
+      {
+        name: "APIs",
+        desc: "围绕业务接口、鉴权和服务治理持续打磨。",
+        icon: icon([path("M5 15a7 7 0 1 1 14 0", "a"), path("M12 15l4-5", "b"), path("M8 19h8", "c")])
+      },
+      {
+        name: "Automation",
+        desc: "把重复劳动流程化，留给思考更多空间。",
+        icon: icon([path("M4 12h16M12 4v16M7 7l10 10M17 7L7 17", "a")])
+      }
+    ];
+
+    function useCursorGlow() {
+      const x = useMotionValue(-200);
+      const y = useMotionValue(-200);
+      const springX = useSpring(x, { stiffness: 120, damping: 28, mass: 0.35 });
+      const springY = useSpring(y, { stiffness: 120, damping: 28, mass: 0.35 });
+      useEffect(() => {
+        const move = (event) => {
+          x.set(event.clientX);
+          y.set(event.clientY);
+        };
+        window.addEventListener("pointermove", move);
+        return () => window.removeEventListener("pointermove", move);
+      }, [x, y]);
+      return { x: springX, y: springY };
+    }
+
+    function IntroGate({ onEnter }) {
+      return h(M, { className: "intro", exit: { opacity: 0, scale: 1.08, filter: "blur(14px)" }, transition: { duration: 0.95, ease: [0.22, 1, 0.36, 1] } },
+        h(M, { className: "intro-beam", animate: { opacity: [0.22, 0.48, 0.22], scaleY: [0.86, 1.08, 0.86] }, transition: { duration: 2.8, repeat: Infinity, ease: "easeInOut" } }),
+        h(M, { className: "intro-panel", initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+          h(M, {
+            className: "launch-core",
+            role: "button",
+            tabIndex: 0,
+            onClick: onEnter,
+            onKeyDown: (event) => { if (event.key === "Enter" || event.key === " ") onEnter(); },
+            whileHover: { scale: 1.055 },
+            whileTap: { scale: 0.9 },
+            animate: { y: [0, -10, 0], boxShadow: ["0 30px 120px rgba(0,0,0,.52)", "0 42px 150px rgba(180,198,255,.18)", "0 30px 120px rgba(0,0,0,.52)"] },
+            transition: { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+          }, h(M, { className: "orbit", animate: { rotate: 360 }, transition: { duration: 3.8, repeat: Infinity, ease: "linear" } })),
+          h("h1", { className: "intro-title" }, "Oblivion"),
+          h("p", { className: "intro-copy" }, "点击启动个人知识界面，让博客以更强的科技感展开。"),
+          h(M, { className: "intro-hint", animate: { opacity: [0.62, 1, 0.62] }, transition: { duration: 1.8, repeat: Infinity, ease: "easeInOut" } }, "Click to initialize")
+        )
+      );
+    }
+
+    function HeroTitle() {
+      const lines = [
+        { text: "K-on", muted: false }
+      ];
+      return h("h1", { className: "hero-title title-shine" },
+        lines.map((line, lineIndex) => h("span", { className: `title-line ${line.muted ? "muted" : ""}`, key: line.text },
+          Array.from(line.text).map((char, index) => h(M, {
+            className: "title-char",
+            key: `${line.text}-${index}`,
+            initial: { opacity: 0, y: 42, rotateX: -42, filter: "blur(10px)" },
+            animate: { opacity: 1, y: 0, rotateX: 0, filter: "blur(0px)" },
+            transition: { delay: 0.42 + lineIndex * 0.18 + index * 0.03, duration: 0.75, ease: [0.22, 1, 0.36, 1] }
+          }, char === " " ? "\u00A0" : char))
+        ))
+      );
+    }
+
+    function HeroParticles() {
+      const particles = useMemo(() => Array.from({ length: 52 }, (_, index) => ({
+        id: index,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 4,
+        duration: 7 + Math.random() * 8,
+        opacity: 0.22 + Math.random() * 0.5
+      })), []);
+      return h(React.Fragment, null,
+        h(M, { className: "flow-line one", animate: { x: ["-14%", "18%", "-14%"], opacity: [0.14, 0.42, 0.14] }, transition: { duration: 8, repeat: Infinity, ease: "easeInOut" } }),
+        h(M, { className: "flow-line two", animate: { x: ["14%", "-18%", "14%"], opacity: [0.1, 0.28, 0.1] }, transition: { duration: 10, repeat: Infinity, ease: "easeInOut" } }),
+        particles.map((p) => h(M, {
+          key: p.id,
+          className: "particle",
+          style: { left: `${p.left}%`, top: `${p.top}%`, opacity: p.opacity },
+          animate: { y: [-10, 18, -10], x: [-8, 10, -8], opacity: [p.opacity * 0.35, p.opacity, p.opacity * 0.35] },
+          transition: { duration: p.duration, delay: p.delay, repeat: Infinity, ease: "easeInOut" }
+        }))
+      );
+    }
+
+    function SectionTitle({ eyebrow, title, copy }) {
+      return h(M, { className: "section-head", variants: fadeUp, initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-80px" } },
+        h("div", null, h("div", { className: "kicker" }, eyebrow), h("h2", null, title)),
+        h("p", { className: "section-copy" }, copy)
+      );
+    }
+
+    function NoteCard({ article }) {
+      return h(MA, {
+        className: "note-card",
+        href: article.href,
+        target: "_blank",
+        rel: "noreferrer",
+        variants: fadeUp,
+        whileHover: { y: -10, scale: 1.025 },
+        whileTap: { scale: 0.985 },
+        transition: { duration: 0.28, ease: "easeOut" },
+        onMouseMove: (event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+          event.currentTarget.style.setProperty("--my", `${event.clientY - rect.top}px`);
+        }
+      },
+        h("div", { className: "note-top" },
+          h("div", { className: "card-meta" }, h("span", { className: "note-status" }, "Notion Note"), h("span", null, article.time)),
+          h("h3", null, article.title),
+          h("p", null, article.desc),
+          h("div", { className: "tag-row" }, article.tags.map((tag) => h("span", { className: "tag", key: tag }, tag)))
+        ),
+        h("div", { className: "note-bottom" }, h("div", { className: "open-note" }, h("span", null, "打开 Notion 笔记"), h("span", null, "↗")))
+      );
+    }
+
+    function App() {
+      const [entered, setEntered] = useState(false);
+      const glow = useCursorGlow();
+
+      return h("div", { className: "app" },
+        h(M, { className: "cursor-glow", style: { x: glow.x, y: glow.y } }),
+        h(AnimatePresence, null, !entered && h(IntroGate, { onEnter: () => setEntered(true) })),
+        h(M, { initial: { opacity: 0, scale: 0.985 }, animate: entered ? { opacity: 1, scale: 1 } : { opacity: 0.18, scale: 0.985 }, transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] } },
+          h("nav", { className: "nav" },
+            h("div", { className: "nav-links" }, h("a", { href: "#articles" }, "文章"), h("a", { href: "#stack" }, "技术栈"), h("a", { href: "#about" }, "关于我"), h("a", { href: "#contact" }, "联系"))
+          ),
+          h("main", null,
+            h("section", { className: "section hero" },
+              h(M, { className: "hero-stage", animate: { y: [0, -10, 0] }, transition: { duration: 8, repeat: Infinity, ease: "easeInOut" } },
+                h(HeroParticles),
+                h(M, { className: "hero-content", variants: stagger, initial: "hidden", animate: entered ? "visible" : "hidden" },
+                  h(M, { className: "eyebrow", variants: fadeUp }, h("span", { className: "eyebrow-dot" }), "Personal Research Interface"),
+                  h(HeroTitle),
+                  h(M, { variants: fadeUp }, h("p", { className: "subtitle" }, "记录后端、分布式系统、Agent 开发与工程思考。")),
+                  h(M, { className: "hero-actions", variants: fadeUp }, h("a", { className: "btn primary", href: "#articles" }, "阅读文章"), h("a", { className: "btn", href: "#about" }, "了解我"))
+                )
+              )
+            ),
+            h("section", { className: "section", id: "articles" },
+              h(SectionTitle, { eyebrow: "Latest Writing", title: "Notion 笔记库", copy: "每张卡片都是一个动态入口，点击后跳转到对应的 Notion 笔记页面。" }),
+              h(M, { className: "blog-grid", variants: stagger, initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-80px" } }, articles.map((article) => h(NoteCard, { article, key: article.title })))
+            ),
+            h("div", { className: "spacer" }),
+            h("section", { className: "section", id: "stack" },
+              h(SectionTitle, { eyebrow: "Technology Stack", title: "技术栈", copy: "围绕后端、分布式、Agent 和自动化持续演进。" }),
+              h(M, { className: "stack-grid", variants: stagger, initial: "hidden", whileInView: "visible", viewport: { once: true, margin: "-80px" } },
+                techs.map((tech) => h(M, { key: tech.name, className: "tech", variants: fadeUp, whileHover: { y: -10, scale: 1.02 }, transition: { duration: 0.25, ease: "easeOut" } }, h("div", { className: "tech-icon" }, tech.icon), h("h3", null, tech.name), h("p", null, tech.desc)))
+              )
+            ),
+            h("div", { className: "spacer" }),
+            h("section", { className: "section", id: "about" },
+              h(SectionTitle, { eyebrow: "About", title: "关于我", copy: "2024级广东工业大学计算机科学与技术专业学生，主要研究领域是后端开发，目前正在学习 agent 开发。" }),
+              h("div", { className: "about" },
+                h(M, { className: "portrait", initial: { opacity: 0, x: -36 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true, margin: "-80px" }, transition: { duration: 0.85, ease: [0.22, 1, 0.36, 1] }, whileHover: { scale: 1.01 } },
+                  h("div", { className: "portrait-frame" }),
+                  h("div", { className: "portrait-glow" }),
+                  h("div", { className: "portrait-orbit" }),
+                  h("div", { className: "portrait-img" }, h("img", { src: "https://pic1.imgdb.cn/item/6a000e13b38680b5f55c69f4.jpg", alt: "头像" }))
+                ),
+                h(M, { className: "about-panel", initial: { opacity: 0, x: 36 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true, margin: "-80px" }, transition: { duration: 0.85, ease: [0.22, 1, 0.36, 1] } },
+                  h("h2", null, "Engineering with intent."),
+                  h("p", null, "本博客是我使用 Codex 进行 vibecoding 的成果，也是我整理后端、分布式系统与 Agent 方向思考的研究档案。"),
+                  h("div", { className: "timeline" },
+                    h("div", { className: "timeline-item" }, h("div", { className: "timeline-time" }, "2026"), h("div", { className: "timeline-title" }, "学习分布式系统的构建，正在用 Eino 做 Agent 开发实践")),
+                    h("div", { className: "timeline-item" }, h("div", { className: "timeline-time" }, "2025"), h("div", { className: "timeline-title" }, "补强 Golang、Java 后端基础与常见算法")),
+                    h("div", { className: "timeline-item" }, h("div", { className: "timeline-time" }, "2024"), h("div", { className: "timeline-title" }, "开始学习C语言等计算机基础"))
+                  )
+                )
+              )
+            )
+          ),
+          h("footer", { id: "contact" },
+            h("div", { className: "footer-inner" },
+              h("div", null, "Built with React & Framer Motion."),
+              h("div", { className: "socials" },
+                h("a", { href: "https://github.com/roviana-wjh?tab=repositories", target: "_blank", rel: "noreferrer" }, "GitHub"),
+                h("a", { href: "https://space.bilibili.com/3493123514698152?spm_id_from=333.337.0.0", target: "_blank", rel: "noreferrer" }, "Bilibili"),
+                h("a", { href: "https://www.xiaohongshu.com/user/profile/62207cc20000000010007448", target: "_blank", rel: "noreferrer" }, "小红书")
+              )
+            )
+          )
+        )
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(h(App));
+  </script>
+</body>
+</html>
